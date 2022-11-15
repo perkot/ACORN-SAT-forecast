@@ -72,17 +72,19 @@ print(acorn_avg)
 # VISUALIZE 
 # -------------------------------------------
 
+# ------
 # Simple plot
+# ------
 acorn_avg.plot(x="Yr_Month", y="max_temp")
 plt.ylim([10, 40])
 plt.xticks('Yr_Month', l)
 plt.ylabel('daily max temperature')
-plt.show()
+# plt.show()
 
-# print 
-print(acorn_avg)
-
+# ------
 # Plot with aesthetics 
+# ------
+
 # WORKING
 # ----------------------------------------------
 # ------
@@ -151,6 +153,20 @@ ax.set_ylabel('daily max temperature', fontname= "Montserrat", fontsize=13, weig
 ax.yaxis.set_label_coords(-0.05,0.5)
 
 # ------
+# TITLE
+# ------
+
+fig.text(
+    0.20,
+    0.97,
+    "Time Series showing monthly average of daily-maximum temperature from 1980 to 2016",
+    color=GREY10,
+    fontsize=15,
+    fontname="Montserrat",
+    weight="bold"
+)
+
+# ------
 # plot
 # ------
 
@@ -163,6 +179,7 @@ for data in acorn_avg:
 # ------
 
 plt.show()
+
 # ----------------------------------------------
 # END
 
