@@ -157,11 +157,11 @@ ax.yaxis.set_label_coords(-0.05,0.5)
 # ------
 
 fig.text(
-    0.20,
-    0.97,
+    0.18,
+    0.92,
     "Time Series showing monthly average of daily-maximum temperature from 1980 to 2016",
     color=GREY10,
-    fontsize=15,
+    fontsize=14,
     fontname="Montserrat",
     weight="bold"
 )
@@ -182,6 +182,51 @@ plt.show()
 
 # ----------------------------------------------
 # END
+
+
+# https://data.worldbank.org/indicator/EN.ATM.CO2E.PC?locations=AU
+# https://github.com/owid/co2-data
+
+# -------------------------------------------
+# READ DATA 
+# -------------------------------------------
+
+# Import
+co2 = pd.read_csv(r"/Users/perkot/GIT/data/owid-co2-data.csv")
+
+# print
+print(co2)
+
+# subset
+co2 = co2[["country", "year", "co2"]]
+
+# yearly average 
+co2_avg =  co2.groupby(['year'], as_index = False).mean()[['year', 'co2']]
+
+print(co2_avg)
+
+co2_avg.plot(x="year", y="co2")
+# plt.ylim([10, 40])
+plt.xticks('year', l)
+plt.ylabel('avg co2')
+plt.show()
+
+# goal is to re-index these average values to monthly 
+
+# convert year into date format 
+co2_avg['year'] = pd.to_datetime(co2_avg['year'], format='%Y')
+
+# re-index yearly average to a monthly average, spread evenly across the 12 months of the year 
+co2_avg_m = co2_avg.set_index('year').resample('M').bfill().reset_index
+
+# check 
+print(co2_avg_m)
+
+co2_avg_m['yr-month'] = pd.to_datetime(co2_avg_m['year']).dt.strftime('%Y-%m')
+
+
+
+# co2.avg["monthly_co2"] = co2.avg["co2"] / co2_avg.index.monthsinyear
 
 
 # -------------------------------------------
