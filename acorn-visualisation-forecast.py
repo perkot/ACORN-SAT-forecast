@@ -216,18 +216,36 @@ plt.show()
 # convert year into date format 
 co2_avg['year'] = pd.to_datetime(co2_avg['year'], format='%Y')
 
+co2_avg = co2_avg.loc[co2_avg['year'] >= '1980-01-01'] 
+co2_avg = co2_avg.loc[co2_avg['year'] <= '2019-05-01']
+
+
+print(co2_avg)
+
 # re-index yearly average to a monthly average, spread evenly across the 12 months of the year 
-co2_avg_m = co2_avg.set_index('year').resample('M').bfill().reset_index
+co2_avg_m =  co2_avg.set_index('year').resample('M').bfill().reset_index()
 
 # check 
 print(co2_avg_m)
 
-co2_avg_m['yr-month'] = pd.to_datetime(co2_avg_m['year']).dt.strftime('%Y-%m')
+# create yr-month column from date
+co2_avg_m['yr-month'] = co2_avg_m['year'].dt.strftime('%Y-%m')
 
-
+# subset
+co2_avg_m = co2_avg_m[["yr-month", "co2"]]
 
 # co2.avg["monthly_co2"] = co2.avg["co2"] / co2_avg.index.monthsinyear
 
+# -------------------------------------------
+# JOIN
+# -------------------------------------------
+
+# left join on single id
+acornco2 = acorn_avg.merge(co2_avg_m, left_on='Yr_Month', right_on='yr-month', how = "left").drop(columns = ['Year', 'yr-month'])
+
+acornco2.tail(20)
+
+print(acornco2)
 
 # -------------------------------------------
 # REFERENCES 
@@ -238,3 +256,4 @@ co2_avg_m['yr-month'] = pd.to_datetime(co2_avg_m['year']).dt.strftime('%Y-%m')
 # https://realpython.com/pandas-plot-python/
 # https://stackoverflow.com/questions/34162443/why-do-many-examples-use-fig-ax-plt-subplots-in-matplotlib-pyplot-python
 # https://stackoverflow.com/questions/46938572/pandas-groupby-mean-into-a-dataframe
+# https://stackoverflow.com/questions/45306105/pandas-convert-yearly-to-monthly
