@@ -25,6 +25,10 @@ acorn = pd.read_csv(r"/Users/perkot/GIT/data/ACORN-SAT-Clean.csv")
 # Global CO2 data : 1756 : 2020
 co2 = pd.read_csv(r"/Users/perkot/GIT/data/owid-co2-data.csv")
 
+# /* ------------------------------------------------- */
+# ACORN-SAT
+# /* ------------------------------------------------- */
+
 # -------------------------------------------
 # SUMMARISE
 # -------------------------------------------
@@ -51,7 +55,9 @@ acorn = acorn.rename(columns={'maximum temperature (degC)': 'max_temp', 'minimum
 # SUBSET
 # -------------------------------------------
 
-acorn_sub = acorn.loc[acorn['Year'] >= 1980]
+acorn_sub = acorn.loc[acorn['Year'] <= 2018]
+
+acorn_sub.tail(20)
 
 # -------------------------------------------
 # SUMMARISE AVERAGES 
@@ -77,6 +83,85 @@ print(acorn_avg)
 # print
 # print(acorn_avg_p)
 
+# https://data.worldbank.org/indicator/EN.ATM.CO2E.PC?locations=AU
+# https://github.com/owid/co2-data
+
+# /* ------------------------------------------------- */
+# CO2
+# /* ------------------------------------------------- */
+
+# -------------------------------------------
+# SUMMARISE 
+# -------------------------------------------
+
+# unique years
+co2.year.unique()
+# print
+print(co2)
+
+# -------------------------------------------
+# TIDY
+# -------------------------------------------
+
+# subset
+co2 = co2[["country", "year", "co2"]]
+
+# yearly average 
+co2_avg =  co2.groupby(['year'], as_index = False).mean()[['year', 'co2']]
+
+print(co2_avg)
+
+# Around 1950 things begin to spike -- might be interesting to try and forecast 
+co2_avg.plot(x="year", y="co2")
+# plt.ylim([10, 40])
+plt.xticks('year', l)
+plt.ylabel('avg co2')
+plt.show()
+
+# goal is to re-index these average values to monthly 
+
+# convert year into date format 
+co2_avg['year'] = pd.to_datetime(co2_avg['year'], format='%Y')
+
+co2_avg = co2_avg.loc[co2_avg['year'] >= '1910-01-01'] 
+co2_avg = co2_avg.loc[co2_avg['year'] <= '2019-12-01']
+
+print(co2_avg)
+
+# re-index yearly average to a monthly average, spread evenly across the 12 months of the year 
+co2_avg_m =  co2_avg.set_index('year').resample('M').bfill().reset_index()
+
+# check 
+print(co2_avg_m)
+
+# create yr-month column from date
+co2_avg_m['yr-month'] = co2_avg_m['year'].dt.strftime('%Y-%m')
+
+# subset
+co2_avg_m = co2_avg_m[["yr-month", "co2"]]
+
+# co2.avg["monthly_co2"] = co2.avg["co2"] / co2_avg.index.monthsinyear
+
+co2_avg_m.tail(20)
+
+# /* ------------------------------------------------- */
+# JOIN
+# /* ------------------------------------------------- */
+
+# left join on single id
+acornco2 = acorn_avg.merge(co2_avg_m, left_on='Yr_Month', right_on='yr-month', how = "left").drop(columns = ['Year', 'yr-month'])
+
+acornco2.tail(20)
+
+print(acornco2)
+
+# Export 
+# acornco2.to_csv(r"/Users/perkot/GIT/data/acornco2.csv", index = False)
+# Import 
+acornco2 = pd.read_csv(r"/Users/perkot/GIT/data/acornco2.csv")
+
+print(acornco2)
+
 # -------------------------------------------
 # VISUALIZE 
 # -------------------------------------------
@@ -84,10 +169,10 @@ print(acorn_avg)
 # ------
 # Simple plot
 # ------
-acorn_avg.plot(x="Yr_Month", y="max_temp")
-plt.ylim([10, 40])
-plt.xticks('Yr_Month', l)
-plt.ylabel('daily max temperature')
+# acorn_avg.plot(x="Yr_Month", y="max_temp")
+# plt.ylim([10, 40])
+# plt.xticks('Yr_Month', l)
+# plt.ylabel('daily max temperature')
 # plt.show()
 
 # ------
@@ -150,9 +235,9 @@ ax.set_yticklabels(ly, fontname= "Montserrat", fontsize=13, weight=500, color=GR
 # ------
 
 # how many ticks on x-axis 
-ax.xaxis.set_major_locator(plt.MaxNLocator(11)) # specify 11 levels on the x-axis 
+ax.xaxis.set_major_locator(plt.MaxNLocator(13)) # specify 11 levels on the x-axis 
 # custom levels
-l = ['', '1980', '1984', '1988', '1992', '1996', '2000', '2004', '2008', '2012', '2016'] 
+l = ['', '1910', '1920', '1930', '1940', '1950', '1960', '1970', '1980', '1990', '2000', '2010', '2020'] 
 # add x-axis labels to plot  
 ax.set_xticklabels(l, fontname= "Montserrat", fontsize=13, weight=500, color=GREY40) 
 
@@ -168,12 +253,11 @@ ax.yaxis.set_label_coords(-0.05,0.5)
 fig.text(
     0.18,
     0.92,
-    "Time Series showing monthly average of daily-maximum temperature from 1980 to 2016",
+    "Time Series showing monthly average of daily-maximum temperature from 1910 to 2016",
     color=GREY10,
     fontsize=14,
     fontname="Montserrat",
-    weight="bold"
-)
+    weight="bold")
 
 # ------
 # plot
@@ -189,73 +273,47 @@ for data in acorn_avg:
 
 plt.show()
 
-# ----------------------------------------------
-# END
+# /* ------------------------------------------------- */
+# TIME SERIES
+# /* ------------------------------------------------- */
 
+# Plan
 
-# https://data.worldbank.org/indicator/EN.ATM.CO2E.PC?locations=AU
-# https://github.com/owid/co2-data
+# Train = 1950-1989
+# Test = 1990-2018
 
-# -------------------------------------------
-# READ DATA 
-# -------------------------------------------
+acornco2 = acornco2.loc[acornco2['Yr_Month'] >= '1950-01'] 
 
-# unique years
-co2.year.unique()
+train = acornco2.loc[acornco2['Yr_Month'] < '1990-01']
+print(train)
+test = acornco2.loc[acornco2['Yr_Month'] >= '1990-01']
+print(test)
 
-# print
-print(co2)
+# https://machinelearningmastery.com/arima-for-time-series-forecasting-with-python/
 
-# subset
-co2 = co2[["country", "year", "co2"]]
+# plotting actual v predicted
+# https://machinelearningmastery.com/time-series-forecasting-with-prophet-in-python/
 
-# yearly average 
-co2_avg =  co2.groupby(['year'], as_index = False).mean()[['year', 'co2']]
+# https://www.datacamp.com/tutorial/tutorial-time-series-forecasting
 
-print(co2_avg)
+# aim to do sarimax
+# seasonal + exogenous variable co2
 
-# Around 1950 things begin to spike -- might be interesting to try and forecast 
-co2_avg.plot(x="year", y="co2")
-# plt.ylim([10, 40])
-plt.xticks('year', l)
-plt.ylabel('avg co2')
+# https://towardsdatascience.com/time-series-forecast-in-python-using-sarimax-and-prophet-c970e6056b5b
+
+import statsmodels.api as sm
+from pylab import rcParams
+
+# https://www.statsmodels.org/stable/index.html
+
+rcParams['figure.figsize'] = 18, 8
+decomposition = sm.tsa.seasonal_decompose(acorn_avg["max_temp"], model='additive', period = 30)
+fig = decomposition.plot()
 plt.show()
 
-# goal is to re-index these average values to monthly 
 
-# convert year into date format 
-co2_avg['year'] = pd.to_datetime(co2_avg['year'], format='%Y')
-
-co2_avg = co2_avg.loc[co2_avg['year'] >= '1980-01-01'] 
-co2_avg = co2_avg.loc[co2_avg['year'] <= '2019-05-01']
-
-
-print(co2_avg)
-
-# re-index yearly average to a monthly average, spread evenly across the 12 months of the year 
-co2_avg_m =  co2_avg.set_index('year').resample('M').bfill().reset_index()
-
-# check 
-print(co2_avg_m)
-
-# create yr-month column from date
-co2_avg_m['yr-month'] = co2_avg_m['year'].dt.strftime('%Y-%m')
-
-# subset
-co2_avg_m = co2_avg_m[["yr-month", "co2"]]
-
-# co2.avg["monthly_co2"] = co2.avg["co2"] / co2_avg.index.monthsinyear
-
-# -------------------------------------------
-# JOIN
-# -------------------------------------------
-
-# left join on single id
-acornco2 = acorn_avg.merge(co2_avg_m, left_on='Yr_Month', right_on='yr-month', how = "left").drop(columns = ['Year', 'yr-month'])
-
-acornco2.tail(20)
-
-print(acornco2)
+# ----------------------------------------------
+# END
 
 # -------------------------------------------
 # REFERENCES 
